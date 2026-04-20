@@ -164,7 +164,7 @@ class Window(QtWidgets.QDialog):
                     cell_obj_name = cmds.polyCube(w=self.cell_width,
                                                   h=self.cell_height,
                                                   d=self.cell_width,
-                                                  name=f"cell_{x}_{y}_{z}")[0]
+                                                  name=f"cell_{x+1}_{y+1}_{z+1}")[0]
                     # move cell to position in lattice
                     cmds.move(x*self.cell_width,
                               y*self.cell_height+.5*self.cell_height,
@@ -186,13 +186,15 @@ class Window(QtWidgets.QDialog):
         # lower floor assets (when floors >= 2):
         # - midline, midline_corner
         # - door
-        cell_list = cmds.ls("cell_*")
 
-        for cell in cell_list:
-            print(cell)
-            # store cell data
-            # delete cell
-            # create geo if cell meets criteria
+        # iterate through cells in each floor and save pos
+        # after, iterate through again and check for extremes
+        # (highest or lowest x or z)
+        # create columns if both
+        # create windows when one or the other
+
+        floor_list = cmds.ls("floor_*")
+
 
     def cleanup(self):
         if cmds.objExists("SM_ApartmentBuilding"):
