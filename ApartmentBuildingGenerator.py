@@ -167,6 +167,9 @@ class Window(QtWidgets.QDialog):
         # master group
         cmds.group(em=True, name="SM_ApartmentBuilding")
 
+        # roof group
+        cmds.group(em=True, name="roof_grp")
+
         # floor groups
         for floor in range(self.building_height):
             cmds.group(em=True, name=f"floor_{floor+1}")
@@ -256,6 +259,8 @@ class Window(QtWidgets.QDialog):
                 self.build_column(floor_num, (x, z), corner)
                 self.build_band_corner(floor_num, (x, z), corner)
                 self.build_roof_corner((x, z), corner)
+
+        cmds.parent("roof_grp", "SM_ApartmentBuilding")
 
         cmds.xform("SM_ApartmentBuilding",
                    scale=(self.master_scale,
@@ -381,13 +386,37 @@ class Window(QtWidgets.QDialog):
 
         cmds.parent(band_obj_name, f"floor_{floor_num}")
 
-
-
     def build_balcony(self, floor_num, pos, dir):
         pass
 
     def build_awning(self, floor_num, pos, dir):
         pass
 
-    def build_roof_corner(self, pos, corner):
-        pass
+    def build_roof_corner(self, pos, dir):
+        height = self.roof_height
+        width = self.roof_depth
+        difference = .5*(width-self.cell_width)
+
+        polarity_x = int(dir[0]+"1")
+        polarity_z = int(dir[2]+"1")
+
+        roof_corner_obj_name = cmds.polyCube(  # create geo
+            w=width,
+            d=width,
+            h=height,
+            name=f"rooftop_corner_{pos}_{dir}"
+        )
+        cmds.move(  # move to pos
+            (polarity_x*(pos[0]-1)*self.cell_width),
+            .5*height+self.building_height*self.cell_height+self.cornice_height,
+            (polarity_z*(pos[1]-1)*self.cell_width)
+        )
+        cmds.move(  # push toward corner
+            polarity_x*difference,
+            0,
+            polarity_z*difference,
+            relative=True,
+            objectSpace=True
+        )
+
+        cmds.parent(roof_corner_obj_name, "roof_grp")
