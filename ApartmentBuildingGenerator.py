@@ -32,6 +32,11 @@ class Window(QtWidgets.QDialog):
         self._connect_signals()
 
     def make_dimensions_options_ui(self):
+        self.dimensions_options_header_layout = QtWidgets.QHBoxLayout()
+        self.dimensions_lbl = QtWidgets.QLabel("Dimensions")
+        self.dimensions_options_header_layout.addWidget(self.dimensions_lbl)
+        self.main_layout.addLayout(self.dimensions_options_header_layout)
+
         self.width_option_layout = QtWidgets.QHBoxLayout()
         self.length_option_layout = QtWidgets.QHBoxLayout()
         self.height_option_layout = QtWidgets.QHBoxLayout()
