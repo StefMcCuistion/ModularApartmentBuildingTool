@@ -138,10 +138,14 @@ class Window(QtWidgets.QDialog):
         self.main_layout.addWidget(self.cancel_btn)
 
     def build(self):
+        self.cleanup()  # delete old building
+
+        # init attributes
         self.building_height = self.height_spinbox.value()
         self.building_width = self.width_spinbox.value()
         self.building_length = self.length_spinbox.value()
 
+        # cell dimensions for cell lattice
         self.cell_width = 340  # cm
         self.cell_height = 290
 
@@ -152,7 +156,7 @@ class Window(QtWidgets.QDialog):
         for floor in range(self.building_height):
             cmds.group(em=True, name=f"floor_{floor+1}")
 
-        # nested loops to create lattice
+        # nested loops to create cell lattice
         for x in range(self.building_width):
             for y in range(self.building_height):
                 for z in range(self.building_length):
@@ -168,3 +172,7 @@ class Window(QtWidgets.QDialog):
                     cmds.parent(cell_obj_name, f"floor_{y+1}")
                 # group floor under master group
                 cmds.parent(f"floor_{y+1}", "SM_ApartmentBuilding")
+
+    def cleanup(self):
+        if cmds.objExists("SM_ApartmentBuilding"):
+            cmds.delete("SM_ApartmentBuilding")
