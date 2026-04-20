@@ -260,6 +260,12 @@ class Window(QtWidgets.QDialog):
 
     def build_wall(self, floor_num, pos, dir):
 
+        self.build_window(floor_num, pos, dir)
+        self.build_midline_and_cornice(floor_num, pos, dir)
+        self.build_balcony(floor_num, pos, dir)
+        self.build_awning(floor_num, pos, dir)
+
+    def build_window(self, floor_num, pos, dir):
         floor_height = (floor_num-1)*self.cell_height+.5*self.cell_height
         degrees_per_direction = {"+x": 90, "-x": -90, "+z": 0, "-z": 180}
         rotation = degrees_per_direction[dir]
@@ -333,3 +339,12 @@ class Window(QtWidgets.QDialog):
                 polarity_z * (.5 * self.cell_width + .5 * overhang),
                 relative=True)
         cmds.parent(outer_corner_obj_name, f"floor_{floor_num}")
+
+    def build_midline_and_cornice(self, floor_num, pos, dir):
+        pass
+
+    def build_balcony(self, floor_num, pos, dir):
+        pass
+
+    def build_awning(self, floor_num, pos, dir):
+        pass
