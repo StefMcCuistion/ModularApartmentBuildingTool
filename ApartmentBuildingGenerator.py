@@ -149,9 +149,12 @@ class Window(QtWidgets.QDialog):
         self.building_width = self.width_spinbox.value()
         self.building_length = self.length_spinbox.value()
 
-        # cell dimensions for cell lattice
+        # dimensions
         self.cell_width = 340  # cm
         self.cell_height = 290
+        self.cornice_height = 160
+        self.cornice_overhang = 70
+        self.master_scale = 1.075
 
         # master group
         cmds.group(em=True, name="SM_ApartmentBuilding")
@@ -191,17 +194,11 @@ class Window(QtWidgets.QDialog):
         # - midline, midline_corner
         # - door
 
-        # iterate through cells in each floor and save pos
-        # after, iterate through again and check for extremes
-        # (highest or lowest x or z)
-        # create columns if both
-        # create windows when one or the other
-
         floor_list = cmds.ls("floor_*")
-        highest_cell_x = 1
-        lowest_cell_x = 1
-        highest_cell_z = 1
-        lowest_cell_z = 1
+        max_x = 1
+        min_x = 1
+        max_z = 1
+        min_z = 1
 
         for floor in floor_list:
             cell_list = cmds.listRelatives(floor, children=True)
@@ -211,54 +208,52 @@ class Window(QtWidgets.QDialog):
                 cell_pos = cell.split("_")[1:]
                 cell_x = int(cell_pos[0])
                 cell_z = int(cell_pos[2])
-                highest_cell_x = max(highest_cell_x, cell_x)
-                lowest_cell_x = min(lowest_cell_x, cell_x)
-                highest_cell_z = max(highest_cell_z, cell_z)
-                lowest_cell_z = min(lowest_cell_z, cell_z)
+                max_x = max(max_x, cell_x)
+                min_x = min(min_x, cell_x)
+                max_z = max(max_z, cell_z)
+                min_z = min(min_z, cell_z)
+            print(f"highest_cell_x={max_x},"
+                  f"lowest_cell_x={min_x},"
+                  f"highest_cell_z={max_z},"
+                  f"lowest_cell_z={min_z}")
             # 2nd: check eligiblity
             for cell in cell_list:
                 # init variables
-                max_x = False
-                max_z = False
-                min_x = False
-                min_z = False
                 floor_num = int(floor.split("_")[1])
-
                 cell_pos = cell.split("_")[1:]
                 cell_x = int(cell_pos[0])
                 cell_z = int(cell_pos[2])
 
-                if cell_x == highest_cell_x:
-                    max_x = True
-                    self.build_window(floor_num, (cell_x, cell_z), "+x")
-                elif cell_x == lowest_cell_x:
-                    min_x = True
-                    self.build_window(floor_num, (cell_x, cell_z), "-x")
-                if cell_z == highest_cell_z:
-                    max_z = True
-                    self.build_window(floor_num, (cell_x, cell_z), "+z")
-                elif cell_z == lowest_cell_z:
-                    min_z = True
-                    self.build_window(floor_num, (cell_x, cell_z), "-z")
-
-                if max_x and max_z:
-                    self.build_column(floor_num, (cell_x, cell_z), "+x+z")
-                elif max_x and min_z:
-                    self.build_column(floor_num, (cell_x, cell_z), "+x-z")
-                elif min_x and max_z:
-                    self.build_column(floor_num, (cell_x, cell_z), "-x+z")
-                elif min_x and min_z:
-                    self.build_column(floor_num, (cell_x, cell_z), "-x-z")
-
-                # check column eligibility
-                # check +x wall eligibility
-                # check -x wall eligibility
-                # check +z wall eligibility
-                # check -z wall eligibility
+                if cell_x == max_x:
+                    self.build_wall(floor_num, (cell_x, cell_z), "+x")
+                elif cell_x == min_x:
+                    self.build_wall(floor_num, (cell_x, cell_z), "-x")
+                if cell_z == max_z:
+                    self.build_wall(floor_num, (cell_x, cell_z), "+z")
+                elif cell_z == min_z:
+                    self.build_wall(floor_num, (cell_x, cell_z), "-z")
 
                 cmds.delete(cell)
 
-    def build_window(self, floor_num, pos, dir):
+            corners = ("+x+z", "+x-z", "-x+z", "-x-z")
+            for corner in corners:
+                if corner[0] == "+":
+                    x = max_x
+                else:
+                    x = min_x
+                if corner[2] == "+":
+                    z = max_z
+                else:
+                    z = min_z
+                self.build_column(floor_num, (x, z), corner)
+                self.build_outer_corner(floor_num, (x, z), corner)
+
+        cmds.xform("SM_ApartmentBuilding",
+                   scale=(self.master_scale,
+                          self.master_scale,
+                          self.master_scale))
+
+    def build_wall(self, floor_num, pos, dir):
 
         floor_height = (floor_num-1)*self.cell_height+.5*self.cell_height
         degrees_per_direction = {"+x": 90, "-x": -90, "+z": 0, "-z": 180}
@@ -304,3 +299,31 @@ class Window(QtWidgets.QDialog):
                   polarity_z * .5 * self.cell_width,
                   relative=True)
         cmds.parent(column_obj_name, f"floor_{floor_num}")
+
+    def build_outer_corner(self, floor_num, pos, dir):
+        if floor_num == self.building_height:
+            self.build_cornice_corner(pos, dir)
+        else:
+            self.build_midline_corner(pos, floor_num, dir)
+
+    def build_cornice_corner(self, pos, dir):
+        floor_height = (self.building_height*self.cell_height)+.5*self.cornice_height
+        polarity_x = int(dir[0]+"1")
+        polarity_z = int(dir[2]+"1")
+        cornice_corner_obj_name = cmds.polyCube(  # create cornice corner
+            h=self.cornice_height,
+            w=self.cornice_overhang,
+            d=self.cornice_overhang)[0]
+        cmds.move(  # move to cell center
+            (pos[0]-1)*self.cell_width,
+            floor_height,
+            (pos[1]-1)*self.cell_width)
+        cmds.move(  # move to the corner
+            polarity_x * (.5 * self.cell_width + .5 * self.cornice_overhang),
+            0,
+            polarity_z * (.5 * self.cell_width + .5 * self.cornice_overhang),
+            relative=True)
+        cmds.parent(cornice_corner_obj_name, f"floor_{self.building_height}")
+
+    def build_midline_corner(self, pos, floor_num, dir):
+        pass
