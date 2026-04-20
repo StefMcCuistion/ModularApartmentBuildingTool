@@ -152,8 +152,13 @@ class Window(QtWidgets.QDialog):
         # dimensions
         self.cell_width = 340  # cm
         self.cell_height = 290
+
         self.cornice_height = 160
-        self.cornice_overhang = 70
+        self.cornice_overhang = 65
+
+        self.midline_height = 20
+        self.midline_overhang = 45
+
         self.master_scale = 1.075
 
         # master group
@@ -201,7 +206,7 @@ class Window(QtWidgets.QDialog):
         min_z = 1
 
         for floor in floor_list:
-            cell_list = cmds.listRelatives(floor, children=True)
+            cell_list = cmds.ls(f"{floor}|cell_*")
             print(cell_list)
             # 1st: find extremes
             for cell in cell_list:
@@ -302,28 +307,29 @@ class Window(QtWidgets.QDialog):
 
     def build_outer_corner(self, floor_num, pos, dir):
         if floor_num == self.building_height:
-            self.build_cornice_corner(pos, dir)
+            overhang = self.cornice_overhang
+            height = self.cornice_height
+            name = "cornice"
         else:
-            self.build_midline_corner(pos, floor_num, dir)
+            overhang = self.midline_overhang
+            height = self.midline_height
+            name = "midline"
 
-    def build_cornice_corner(self, pos, dir):
-        floor_height = (self.building_height*self.cell_height)+.5*self.cornice_height
         polarity_x = int(dir[0]+"1")
         polarity_z = int(dir[2]+"1")
-        cornice_corner_obj_name = cmds.polyCube(  # create cornice corner
-            h=self.cornice_height,
-            w=self.cornice_overhang,
-            d=self.cornice_overhang)[0]
+
+        outer_corner_obj_name = cmds.polyCube(  # create cornice corner
+            h=height,
+            w=overhang,
+            d=overhang,
+            name=f"{name}_corner_{pos}")[0]
         cmds.move(  # move to cell center
             (pos[0]-1)*self.cell_width,
-            floor_height,
+            floor_num*self.cell_height+.5*height,
             (pos[1]-1)*self.cell_width)
         cmds.move(  # move to the corner
-            polarity_x * (.5 * self.cell_width + .5 * self.cornice_overhang),
-            0,
-            polarity_z * (.5 * self.cell_width + .5 * self.cornice_overhang),
-            relative=True)
-        cmds.parent(cornice_corner_obj_name, f"floor_{self.building_height}")
-
-    def build_midline_corner(self, pos, floor_num, dir):
-        pass
+                polarity_x * (.5 * self.cell_width + .5 * overhang),
+                0,
+                polarity_z * (.5 * self.cell_width + .5 * overhang),
+                relative=True)
+        cmds.parent(outer_corner_obj_name, f"floor_{floor_num}")
