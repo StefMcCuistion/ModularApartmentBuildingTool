@@ -163,7 +163,8 @@ class Window(QtWidgets.QDialog):
                     # create cell
                     cell_obj_name = cmds.polyCube(w=self.cell_width,
                                                   h=self.cell_height,
-                                                  d=self.cell_width)[0]
+                                                  d=self.cell_width,
+                                                  name=f"cell_{x}_{y}_{z}")[0]
                     # move cell to position in lattice
                     cmds.move(x*self.cell_width,
                               y*self.cell_height+.5*self.cell_height,
@@ -172,6 +173,26 @@ class Window(QtWidgets.QDialog):
                     cmds.parent(cell_obj_name, f"floor_{y+1}")
                 # group floor under master group
                 cmds.parent(f"floor_{y+1}", "SM_ApartmentBuilding")
+
+        # all floor assets:
+        # - column
+        # - window
+        # - balcony
+        # - awning
+        # top floor assets:
+        # - cornice, cornice_corner
+        # - roof, roof_corner, rooftop
+        # - smokestacks
+        # lower floor assets (when floors >= 2):
+        # - midline, midline_corner
+        # - door
+        cell_list = cmds.ls("cell_*")
+
+        for cell in cell_list:
+            print(cell)
+            # store cell data
+            # delete cell
+            # create geo if cell meets criteria
 
     def cleanup(self):
         if cmds.objExists("SM_ApartmentBuilding"):
