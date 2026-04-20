@@ -137,6 +137,10 @@ class Window(QtWidgets.QDialog):
         self.main_layout.addWidget(self.build_btn)
         self.main_layout.addWidget(self.cancel_btn)
 
+    def cleanup(self):
+        if cmds.objExists("SM_ApartmentBuilding"):
+            cmds.delete("SM_ApartmentBuilding")
+
     def build(self):
         self.cleanup()  # delete old building
 
@@ -194,8 +198,32 @@ class Window(QtWidgets.QDialog):
         # create windows when one or the other
 
         floor_list = cmds.ls("floor_*")
+        highest_cell_x = 0
+        lowest_cell_x = 0
+        highest_cell_z = 0
+        lowest_cell_z = 0
 
-
-    def cleanup(self):
-        if cmds.objExists("SM_ApartmentBuilding"):
-            cmds.delete("SM_ApartmentBuilding")
+        for floor in floor_list:
+            cell_list = cmds.listRelatives(floor, children=True)
+            print(cell_list)
+            # 1st: find extremes
+            for cell in cell_list:
+                cell_pos = cell.split("_")[1:]
+                cell_x = int(cell_pos[0])
+                cell_z = int(cell_pos[2])
+                highest_cell_x = max(highest_cell_x, cell_x)
+                lowest_cell_x = min(lowest_cell_x, cell_x)
+                highest_cell_z = max(highest_cell_z, cell_z)
+                lowest_cell_z = min(lowest_cell_z, cell_z)
+            # 2nd: check eligiblity
+            for cell in cell_list:
+                cell_pos = cell.split("_")[1:]
+                cell_x = int(cell_pos[0])
+                cell_z = int(cell_pos[2])
+                if cell_x == highest_cell_x:
+                    print(f"{cell} faces toward +x")
+                # check column eligibility
+                # check +x wall eligibility
+                # check -x wall eligibility
+                # check +z wall eligibility
+                # check -z wall eligibility
