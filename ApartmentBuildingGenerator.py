@@ -42,13 +42,31 @@ class Window(QtWidgets.QDialog):
 
         self.width_spinbox = QtWidgets.QSpinBox()
         self.width_spinbox.setSingleStep(1)
-        self.width_spinbox.setValue(3)
+        self.width_spinbox.setValue(4)
         self.width_spinbox.setMinimum(2)
         self.width_spinbox.setMaximum(100)
         self.width_option_layout.addWidget(self.width_lbl)
         self.width_option_layout.addWidget(self.width_spinbox)
 
+        self.length_spinbox = QtWidgets.QSpinBox()
+        self.length_spinbox.setSingleStep(1)
+        self.length_spinbox.setValue(2)
+        self.length_spinbox.setMinimum(2)
+        self.length_spinbox.setMaximum(100)
+        self.length_option_layout.addWidget(self.length_lbl)
+        self.length_option_layout.addWidget(self.length_spinbox)
+
+        self.height_spinbox = QtWidgets.QSpinBox()
+        self.height_spinbox.setSingleStep(1)
+        self.height_spinbox.setValue(3)
+        self.height_spinbox.setMinimum(1)
+        self.height_spinbox.setMaximum(100)
+        self.height_option_layout.addWidget(self.height_lbl)
+        self.height_option_layout.addWidget(self.height_spinbox)
+
         self.main_layout.addLayout(self.width_option_layout)
+        self.main_layout.addLayout(self.length_option_layout)
+        self.main_layout.addLayout(self.height_option_layout)
 
     def make_buttons_ui(self):
         self.build_btn = QtWidgets.QPushButton("Build")
