@@ -433,12 +433,19 @@ class Window(QtWidgets.QDialog):
         cmds.parent(roof_corner_obj_name, "roof_grp")
 
     def build_roof(self, pos, range_along_axis, axis):
-        if axis == "x":
-            pos_on_axis = pos[0]
-        else:
-            pos_on_axis = pos[1]
-        if pos_on_axis == range_along_axis[0]:
-            polarity = -1
-        else:
-            polarity = 1
-        return
+        # if axis == "x":
+        #     pos_on_axis = pos[0]
+        # else:
+        #     pos_on_axis = pos[1]
+        # if pos_on_axis == range_along_axis[0]:
+        #     polarity = -1
+        # else:
+        #     polarity = 1
+        roof_obj_name = cmds.polyCube(
+            d=self.roof_depth,
+            w=self.cell_width,
+            h=self.roof_height,
+            name=f"roof_{pos}"
+        )
+
+
