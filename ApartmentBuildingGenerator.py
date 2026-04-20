@@ -26,7 +26,7 @@ class Window(QtWidgets.QDialog):
         self.main_layout = QtWidgets.QVBoxLayout()
         # Make parameter UI
         self.make_dimensions_options_ui()  # length, width, height
-        # self.make_details_options_ui()  # balconies, awnings, etc.
+        self.make_details_options_ui()  # balconies, awnings, etc.
         self.make_buttons_ui()  # Build and Cancel buttons
         self.setLayout(self.main_layout)
         self._connect_signals()
@@ -72,6 +72,28 @@ class Window(QtWidgets.QDialog):
         self.main_layout.addLayout(self.width_option_layout)
         self.main_layout.addLayout(self.length_option_layout)
         self.main_layout.addLayout(self.height_option_layout)
+
+    def make_details_options_ui(self):
+        # header
+        self.details_options_header_layout = QtWidgets.QHBoxLayout()
+        self.details_lbl = QtWidgets.QLabel("Details")
+        self._header_layout.addWidget(self.details_lbl)
+        self.main_layout.addLayout(self.details_options_header_layout)
+        # balcony density (int 0 to 100 slider)
+        # Awning density (int 0 to 100 slider)
+        # Smokestacks (bool)
+        # Sidewalk (bool)
+
+        # door placement (int 0 to 100 slider, drives int 0 to width -1)
+        self.door_placement_layout = QtWidgets.QHBoxLayout()
+        self.door_placement_lbl = QtWidgets.QLabel("Door Placement")
+        self.door_placement_slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
+        self.door_placement_slider.setMinimum(0)
+        self.door_placement_slider.setMaximum(100)
+        self.door_placement_slider.setValue(0)
+        self.door_placement_layout.addWidget(self.door_placement_lbl)
+        self.door_placement_layout.addWidget(self.door_placement_slider)
+        self.main_layout.addLayout(self.door_placement_layout)
 
     def make_buttons_ui(self):
         self.build_btn = QtWidgets.QPushButton("Build")
