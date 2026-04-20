@@ -198,10 +198,10 @@ class Window(QtWidgets.QDialog):
         # create windows when one or the other
 
         floor_list = cmds.ls("floor_*")
-        highest_cell_x = 0
-        lowest_cell_x = 0
-        highest_cell_z = 0
-        lowest_cell_z = 0
+        highest_cell_x = 1
+        lowest_cell_x = 1
+        highest_cell_z = 1
+        lowest_cell_z = 1
 
         for floor in floor_list:
             cell_list = cmds.listRelatives(floor, children=True)
@@ -221,9 +221,47 @@ class Window(QtWidgets.QDialog):
                 cell_x = int(cell_pos[0])
                 cell_z = int(cell_pos[2])
                 if cell_x == highest_cell_x:
-                    print(f"{cell} faces toward +x")
+                    self.build_wall(floor, (cell_x, cell_z), "+x")
+                elif cell_x == lowest_cell_x:
+                    self.build_wall(floor, (cell_x, cell_z), "-x")
+                if cell_z == highest_cell_z:
+                    self.build_wall(floor, (cell_x, cell_z), "+z")
+                elif cell_z == lowest_cell_z:
+                    self.build_wall(floor, (cell_x, cell_z), "-z")
+
                 # check column eligibility
                 # check +x wall eligibility
                 # check -x wall eligibility
                 # check +z wall eligibility
                 # check -z wall eligibility
+
+    def build_wall(self, floor, pos, dir):
+        print(f"build wall on {floor} at {pos} facing {dir}")
+
+        floor_num = int(floor.split("_")[1])
+        floor_height = (floor_num-1)*self.cell_height+.5*self.cell_height
+
+        degrees_per_direction = {"+x": 90, "-x": -90, "+z": 0, "-z": 180}
+        rotation = degrees_per_direction[dir]
+        axis = dir[1]
+        polarity = int(dir[0]+"1")
+
+        wall_obj_name = cmds.polyPlane(  # create wall
+            h=self.cell_height,
+            w=self.cell_width,
+            subdivisionsX=1,
+            subdivisionsY=1)[0]
+        cmds.rotate(90, 0, 0)  # stand upright
+        cmds.rotate(0, rotation, 0, relative=True)  # face correct direction
+        cmds.move(  # move to cell center
+            (pos[0]-1)*self.cell_width,
+            floor_height,
+            (pos[1]-1)*self.cell_width)
+        if axis == "x":
+            cmds.move(polarity * .5 * self.cell_width, 0, 0,
+                      relative=True)
+        elif axis == "z":
+            cmds.move(0, 0, polarity * .5 * self.cell_width,
+                      relative=True)
+        # cmds.move(  # move to wall position
+        #     0, 0, -.5*self.cell_width, relative=True, objectSpace=True)
