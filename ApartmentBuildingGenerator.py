@@ -23,11 +23,32 @@ class Window(QtWidgets.QDialog):
         self.build_btn.clicked.connect(self.build)
 
     def _mk_main_layout(self):
-        self.main_layout = QtWidgets.QVBoxLayout()  # vertical layout
+        self.main_layout = QtWidgets.QVBoxLayout()
         # Make parameter UI
+        self.make_dimensions_options_ui()  # length, width, height
+        # self.make_details_options_ui()  # balconies, awnings, etc.
         self.make_buttons_ui()  # Build and Cancel buttons
         self.setLayout(self.main_layout)
         self._connect_signals()
+
+    def make_dimensions_options_ui(self):
+        self.width_option_layout = QtWidgets.QHBoxLayout()
+        self.length_option_layout = QtWidgets.QHBoxLayout()
+        self.height_option_layout = QtWidgets.QHBoxLayout()
+
+        self.width_lbl = QtWidgets.QLabel("Width")
+        self.length_lbl = QtWidgets.QLabel("Length")
+        self.height_lbl = QtWidgets.QLabel("Height")
+
+        self.width_spinbox = QtWidgets.QSpinBox()
+        self.width_spinbox.setSingleStep(1)
+        self.width_spinbox.setValue(3)
+        self.width_spinbox.setMinimum(2)
+        self.width_spinbox.setMaximum(100)
+        self.width_option_layout.addWidget(self.width_lbl)
+        self.width_option_layout.addWidget(self.width_spinbox)
+
+        self.main_layout.addLayout(self.width_option_layout)
 
     def make_buttons_ui(self):
         self.build_btn = QtWidgets.QPushButton("Build")
