@@ -251,7 +251,7 @@ class Window(QtWidgets.QDialog):
                 else:
                     z = min_z
                 self.build_column(floor_num, (x, z), corner)
-                self.build_outer_corner(floor_num, (x, z), corner)
+                self.build_band_corner(floor_num, (x, z), corner)
 
         cmds.xform("SM_ApartmentBuilding",
                    scale=(self.master_scale,
@@ -261,7 +261,7 @@ class Window(QtWidgets.QDialog):
     def build_wall(self, floor_num, pos, dir):
 
         self.build_window(floor_num, pos, dir)
-        self.build_midline_and_cornice(floor_num, pos, dir)
+        self.build_band(floor_num, pos, dir)
         self.build_balcony(floor_num, pos, dir)
         self.build_awning(floor_num, pos, dir)
 
@@ -311,7 +311,7 @@ class Window(QtWidgets.QDialog):
                   relative=True)
         cmds.parent(column_obj_name, f"floor_{floor_num}")
 
-    def build_outer_corner(self, floor_num, pos, dir):
+    def build_band_corner(self, floor_num, pos, dir):
         if floor_num == self.building_height:
             overhang = self.cornice_overhang
             height = self.cornice_height
@@ -324,7 +324,7 @@ class Window(QtWidgets.QDialog):
         polarity_x = int(dir[0]+"1")
         polarity_z = int(dir[2]+"1")
 
-        outer_corner_obj_name = cmds.polyCube(  # create cornice corner
+        band_corner_obj_name = cmds.polyCube(  # create cornice corner
             h=height,
             w=overhang,
             d=overhang,
@@ -338,10 +338,44 @@ class Window(QtWidgets.QDialog):
                 0,
                 polarity_z * (.5 * self.cell_width + .5 * overhang),
                 relative=True)
-        cmds.parent(outer_corner_obj_name, f"floor_{floor_num}")
+        cmds.parent(band_corner_obj_name, f"floor_{floor_num}")
 
-    def build_midline_and_cornice(self, floor_num, pos, dir):
-        pass
+    def build_band(self, floor_num, pos, dir):
+        degrees_per_direction = {"+x": 90, "-x": -90, "+z": 0, "-z": 180}
+        rotation = degrees_per_direction[dir]
+        axis = dir[1]
+        polarity = int(dir[0]+"1")
+
+        if floor_num == self.building_height:
+            height = self.cornice_height
+            overhang = self.cornice_overhang
+            name = "cornice"
+        else:
+            height = self.midline_height
+            overhang = self.midline_overhang
+            name = "midline"
+
+        band_obj_name = cmds.polyCube( # create band
+            d=overhang,
+            w=self.cell_width,
+            h=height,
+            name=f"{name}_{pos}"
+        )[0]
+        cmds.move(  # move to cell center
+            (pos[0]-1)*self.cell_width,
+            floor_num*self.cell_height+.5*height,
+            (pos[1]-1)*self.cell_width)
+        if axis == "x":  # move to edge of cell
+            cmds.rotate(0, rotation, 0, relative=True, objectSpace=True)
+            cmds.move(polarity*(.5*self.cell_width+.5*overhang), 0, 0,
+                      relative=True)
+        elif axis == "z":
+            cmds.move(0, 0, polarity*(.5*self.cell_width+.5*overhang),
+                      relative=True)
+
+        cmds.parent(band_obj_name, f"floor_{floor_num}")
+
+
 
     def build_balcony(self, floor_num, pos, dir):
         pass
