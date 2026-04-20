@@ -138,4 +138,33 @@ class Window(QtWidgets.QDialog):
         self.main_layout.addWidget(self.cancel_btn)
 
     def build(self):
-        print("Build")
+        self.building_height = self.height_spinbox.value()
+        self.building_width = self.width_spinbox.value()
+        self.building_length = self.length_spinbox.value()
+
+        self.cell_width = 340  # cm
+        self.cell_height = 290
+
+        # master group
+        cmds.group(em=True, name="SM_ApartmentBuilding")
+
+        # floor groups
+        for floor in range(self.building_height):
+            cmds.group(em=True, name=f"floor_{floor+1}")
+
+        # nested loops to create lattice
+        for x in range(self.building_width):
+            for y in range(self.building_height):
+                for z in range(self.building_length):
+                    # create cell
+                    cell_obj_name = cmds.polyCube(w=self.cell_width,
+                                                  h=self.cell_height,
+                                                  d=self.cell_width)[0]
+                    # move cell to position in lattice
+                    cmds.move(x*self.cell_width,
+                              y*self.cell_height+.5*self.cell_height,
+                              z*self.cell_width)
+                    # group cell under floor group
+                    cmds.parent(cell_obj_name, f"floor_{y+1}")
+                # group floor under master group
+                cmds.parent(f"floor_{y+1}", "SM_ApartmentBuilding")
