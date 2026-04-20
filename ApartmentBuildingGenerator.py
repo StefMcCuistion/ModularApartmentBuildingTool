@@ -217,17 +217,38 @@ class Window(QtWidgets.QDialog):
                 lowest_cell_z = min(lowest_cell_z, cell_z)
             # 2nd: check eligiblity
             for cell in cell_list:
+                # init variables
+                max_x = False
+                max_z = False
+                min_x = False
+                min_z = False
+                floor_num = int(floor.split("_")[1])
+
                 cell_pos = cell.split("_")[1:]
                 cell_x = int(cell_pos[0])
                 cell_z = int(cell_pos[2])
+
                 if cell_x == highest_cell_x:
-                    self.build_wall(floor, (cell_x, cell_z), "+x")
+                    max_x = True
+                    self.build_window(floor_num, (cell_x, cell_z), "+x")
                 elif cell_x == lowest_cell_x:
-                    self.build_wall(floor, (cell_x, cell_z), "-x")
+                    min_x = True
+                    self.build_window(floor_num, (cell_x, cell_z), "-x")
                 if cell_z == highest_cell_z:
-                    self.build_wall(floor, (cell_x, cell_z), "+z")
+                    max_z = True
+                    self.build_window(floor_num, (cell_x, cell_z), "+z")
                 elif cell_z == lowest_cell_z:
-                    self.build_wall(floor, (cell_x, cell_z), "-z")
+                    min_z = True
+                    self.build_window(floor_num, (cell_x, cell_z), "-z")
+
+                if max_x and max_z:
+                    self.build_column(floor_num, (cell_x, cell_z), "+x+z")
+                elif max_x and min_z:
+                    self.build_column(floor_num, (cell_x, cell_z), "+x-z")
+                elif min_x and max_z:
+                    self.build_column(floor_num, (cell_x, cell_z), "-x+z")
+                elif min_x and min_z:
+                    self.build_column(floor_num, (cell_x, cell_z), "-x-z")
 
                 # check column eligibility
                 # check +x wall eligibility
@@ -235,18 +256,17 @@ class Window(QtWidgets.QDialog):
                 # check +z wall eligibility
                 # check -z wall eligibility
 
-    def build_wall(self, floor, pos, dir):
-        print(f"build wall on {floor} at {pos} facing {dir}")
+                cmds.delete(cell)
 
-        floor_num = int(floor.split("_")[1])
+    def build_window(self, floor_num, pos, dir):
+
         floor_height = (floor_num-1)*self.cell_height+.5*self.cell_height
-
         degrees_per_direction = {"+x": 90, "-x": -90, "+z": 0, "-z": 180}
         rotation = degrees_per_direction[dir]
         axis = dir[1]
         polarity = int(dir[0]+"1")
 
-        wall_obj_name = cmds.polyPlane(  # create wall
+        window_obj_name = cmds.polyPlane(  # create window
             h=self.cell_height,
             w=self.cell_width,
             subdivisionsX=1,
@@ -257,11 +277,30 @@ class Window(QtWidgets.QDialog):
             (pos[0]-1)*self.cell_width,
             floor_height,
             (pos[1]-1)*self.cell_width)
-        if axis == "x":
+        if axis == "x":  # move to edge of cell
             cmds.move(polarity * .5 * self.cell_width, 0, 0,
                       relative=True)
         elif axis == "z":
             cmds.move(0, 0, polarity * .5 * self.cell_width,
                       relative=True)
-        # cmds.move(  # move to wall position
-        #     0, 0, -.5*self.cell_width, relative=True, objectSpace=True)
+
+        cmds.parent(window_obj_name, f"floor_{floor_num}")
+
+    def build_column(self, floor_num, pos, dir):
+        floor_height = (floor_num-1)*self.cell_height+.5*self.cell_height
+        polarity_x = int(dir[0]+"1")
+        polarity_z = int(dir[2]+"1")
+        column_obj_name = cmds.polyCube(  # create column
+            h=self.cell_height,
+            w=60,
+            d=60)[0]
+        cmds.move(  # move to cell center
+            (pos[0]-1)*self.cell_width,
+            floor_height,
+            (pos[1]-1)*self.cell_width)
+        cmds.move(  # move to the corner
+                  polarity_x * .5 * self.cell_width,
+                  0,
+                  polarity_z * .5 * self.cell_width,
+                  relative=True)
+        cmds.parent(column_obj_name, f"floor_{floor_num}")
