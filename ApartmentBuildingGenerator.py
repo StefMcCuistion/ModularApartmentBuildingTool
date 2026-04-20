@@ -260,6 +260,17 @@ class Window(QtWidgets.QDialog):
                 self.build_band_corner(floor_num, (x, z), corner)
                 self.build_roof_corner((x, z), corner)
 
+            top_floor_cells = cmds.ls(f"floor_{self.building_height}|cell_*")
+            for cell in top_floor_cells:
+                cell_x = int(cell_pos[0])
+                cell_z = int(cell_pos[2])
+                if cell_x == max_x or cell_x == min_x:
+                    if cell_z != max_z and cell_z != min_z:
+                        self.build_roof((cell_x, cell_z), (min_x, max_x), "x")
+                if cell_z == max_z or cell_z == min_z:
+                    if cell_x != max_x and cell_x != min_x:
+                        self.build_roof((cell_x, cell_z), (min_z, max_z), "z")
+
         cmds.parent("roof_grp", "SM_ApartmentBuilding")
 
         cmds.xform("SM_ApartmentBuilding",
@@ -420,3 +431,14 @@ class Window(QtWidgets.QDialog):
         )
 
         cmds.parent(roof_corner_obj_name, "roof_grp")
+
+    def build_roof(self, pos, range_along_axis, axis):
+        if axis == "x":
+            pos_on_axis = pos[0]
+        else:
+            pos_on_axis = pos[1]
+        if pos_on_axis == range_along_axis[0]:
+            polarity = -1
+        else:
+            polarity = 1
+        return
