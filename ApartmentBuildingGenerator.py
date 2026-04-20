@@ -77,7 +77,7 @@ class Window(QtWidgets.QDialog):
         # header
         self.details_options_header_layout = QtWidgets.QHBoxLayout()
         self.details_lbl = QtWidgets.QLabel("Details")
-        self._header_layout.addWidget(self.details_lbl)
+        self.details_options_header_layout.addWidget(self.details_lbl)
         self.main_layout.addLayout(self.details_options_header_layout)
         # balcony density (int 0 to 100 slider)
         # Awning density (int 0 to 100 slider)
@@ -94,6 +94,21 @@ class Window(QtWidgets.QDialog):
         self.door_placement_layout.addWidget(self.door_placement_lbl)
         self.door_placement_layout.addWidget(self.door_placement_slider)
         self.main_layout.addLayout(self.door_placement_layout)
+
+        # awning density
+        self.awning_density_layout = QtWidgets.QHBoxLayout()
+        self.awning_density_lbl = QtWidgets.QLabel("Awning Density")
+        self.awning_density_slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
+        self.awning_density_slider.setMinimum(0)
+        self.awning_density_slider.setMaximum(100)
+        self.awning_density_slider.setValue(40)
+        self.awning_density_layout.addWidget(self.awning_density_lbl)
+        self.awning_density_layout.addWidget(self.awning_density_slider)
+        self.main_layout.addLayout(self.awning_density_layout)
+
+        # smokestacks
+
+        # sidewalk
 
     def make_buttons_ui(self):
         self.build_btn = QtWidgets.QPushButton("Build")
