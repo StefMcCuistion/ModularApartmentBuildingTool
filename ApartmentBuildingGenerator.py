@@ -159,7 +159,10 @@ class Window(QtWidgets.QDialog):
         self.midline_height = 20
         self.midline_overhang = 45
 
-        self.master_scale = 1.075
+        self.roof_height = 380
+        self.roof_depth = 380
+
+        self.master_scale = 1
 
         # master group
         cmds.group(em=True, name="SM_ApartmentBuilding")
@@ -252,6 +255,7 @@ class Window(QtWidgets.QDialog):
                     z = min_z
                 self.build_column(floor_num, (x, z), corner)
                 self.build_band_corner(floor_num, (x, z), corner)
+                self.build_roof_corner((x, z), corner)
 
         cmds.xform("SM_ApartmentBuilding",
                    scale=(self.master_scale,
@@ -276,7 +280,8 @@ class Window(QtWidgets.QDialog):
             h=self.cell_height,
             w=self.cell_width,
             subdivisionsX=1,
-            subdivisionsY=1)[0]
+            subdivisionsY=1,
+            name=f"window_{pos}_{dir}")[0]
         cmds.rotate(90, 0, 0)  # stand upright
         cmds.rotate(0, rotation, 0, relative=True)  # face correct direction
         cmds.move(  # move to cell center
@@ -299,7 +304,8 @@ class Window(QtWidgets.QDialog):
         column_obj_name = cmds.polyCube(  # create column
             h=self.cell_height,
             w=60,
-            d=60)[0]
+            d=60,
+            name=f"column_{pos}_{dir}")[0]
         cmds.move(  # move to cell center
             (pos[0]-1)*self.cell_width,
             floor_height,
@@ -381,4 +387,7 @@ class Window(QtWidgets.QDialog):
         pass
 
     def build_awning(self, floor_num, pos, dir):
+        pass
+
+    def build_roof_corner(self, pos, corner):
         pass
