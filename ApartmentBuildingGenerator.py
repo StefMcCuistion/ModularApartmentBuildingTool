@@ -244,6 +244,16 @@ class Window(QtWidgets.QDialog):
                 elif cell_z == min_z:
                     self.build_wall(floor_num, (cell_x, cell_z), "-z")
 
+                if floor_num == self.building_height:
+                    if cell_x == max_x or cell_x == min_x:
+                        if cell_z != max_z and cell_z != min_z:
+                            self.build_roof((cell_x, cell_z),
+                                            (min_x, max_x), "x")
+                    if cell_z == max_z or cell_z == min_z:
+                        if cell_x != max_x and cell_x != min_x:
+                            self.build_roof((cell_x, cell_z),
+                                            (min_z, max_z), "z")
+
                 cmds.delete(cell)
 
             corners = ("+x+z", "+x-z", "-x+z", "-x-z")
@@ -258,18 +268,8 @@ class Window(QtWidgets.QDialog):
                     z = min_z
                 self.build_column(floor_num, (x, z), corner)
                 self.build_band_corner(floor_num, (x, z), corner)
-                self.build_roof_corner((x, z), corner)
-
-            top_floor_cells = cmds.ls(f"floor_{self.building_height}|cell_*")
-            for cell in top_floor_cells:
-                cell_x = int(cell_pos[0])
-                cell_z = int(cell_pos[2])
-                if cell_x == max_x or cell_x == min_x:
-                    if cell_z != max_z and cell_z != min_z:
-                        self.build_roof((cell_x, cell_z), (min_x, max_x), "x")
-                if cell_z == max_z or cell_z == min_z:
-                    if cell_x != max_x and cell_x != min_x:
-                        self.build_roof((cell_x, cell_z), (min_z, max_z), "z")
+                if floor_num == self.building_height:
+                    self.build_roof_corner((x, z), corner)
 
         cmds.parent("roof_grp", "SM_ApartmentBuilding")
 
@@ -433,19 +433,38 @@ class Window(QtWidgets.QDialog):
         cmds.parent(roof_corner_obj_name, "roof_grp")
 
     def build_roof(self, pos, range_along_axis, axis):
-        # if axis == "x":
-        #     pos_on_axis = pos[0]
-        # else:
-        #     pos_on_axis = pos[1]
-        # if pos_on_axis == range_along_axis[0]:
-        #     polarity = -1
-        # else:
-        #     polarity = 1
-        roof_obj_name = cmds.polyCube(
+        if axis == "x":
+            pos_on_axis = pos[0]
+        else:
+            pos_on_axis = pos[1]
+        if pos_on_axis == range_along_axis[0]:
+            polarity = -1
+        else:
+            polarity = 1
+
+        roof_obj_name = cmds.polyCube(  # create geo
             d=self.roof_depth,
             w=self.cell_width,
             h=self.roof_height,
             name=f"roof_{pos}"
+        )[0]
+        cmds.move(  # move to pos
+            (pos[0]-1)*self.cell_width,
+            .5*self.roof_height+self.building_height*self.cell_height+self.cornice_height,
+            (pos[1]-1)*self.cell_width
         )
+        if axis == "x":
+            cmds.move(  # push outward, rotate
+                    polarity*20,
+                    0,
+                    0,
+                    relative=True, objectSpace=True)
+            cmds.rotate(0, 90, 0, relative=True, objectSpace=True)
+        else:
+            cmds.move(  # push outward
+                    0,
+                    0,
+                    polarity*20,
+                    relative=True, objectSpace=True)
 
-
+        cmds.parent(roof_obj_name, "roof_grp")
