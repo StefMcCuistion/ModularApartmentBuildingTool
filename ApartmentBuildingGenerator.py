@@ -20,7 +20,7 @@ class Window(QtWidgets.QDialog):
 
     def _connect_signals(self):
         self.cancel_btn.clicked.connect(self.close)
-        self.build_btn.clicked.connect(self.build)
+        self.build_btn.clicked.connect(self._create_building)
 
     def _mk_main_layout(self):
         self.main_layout = QtWidgets.QVBoxLayout()
@@ -137,17 +137,21 @@ class Window(QtWidgets.QDialog):
         self.main_layout.addWidget(self.build_btn)
         self.main_layout.addWidget(self.cancel_btn)
 
-    def cleanup(self):
-        if cmds.objExists("SM_ApartmentBuilding"):
-            cmds.delete("SM_ApartmentBuilding")
+    def _create_building(self):
+        building = ApartmentBuilding((self.height_spinbox.value(),
+                                      self.width_spinbox.value(),
+                                      self.length_spinbox.value()))
+        building.build()
 
-    def build(self):
-        self.cleanup()  # delete old building
 
-        # init attributes
-        self.building_height = self.height_spinbox.value()
-        self.building_width = self.width_spinbox.value()
-        self.building_length = self.length_spinbox.value()
+class ApartmentBuilding():
+
+    def __init__(self, dimensions):
+
+        self.building_height = dimensions[0]
+        self.building_width = dimensions[1]
+        self.building_length = dimensions[2]
+        self.master_scale = 1
 
         # dimensions
         self.cell_width = 340  # cm
@@ -164,17 +168,28 @@ class Window(QtWidgets.QDialog):
 
         self.master_scale = 1
 
+        # init cell extremes variables
+        self.max_x = 1
+        self.min_x = 1
+        self.max_z = 1
+        self.min_z = 1
+
+    def delete_previous_building(self):
+        if cmds.objExists("master_grp"):
+            cmds.delete("master_grp")
+
+    def _create_initial_groups(self):
         # master group
-        cmds.group(em=True, name="SM_ApartmentBuilding")
+        cmds.group(em=True, name="master_grp")
 
         # roof group
         cmds.group(em=True, name="roof_grp")
 
         # floor groups
         for floor in range(self.building_height):
-            cmds.group(em=True, name=f"floor_{floor+1}")
+            cmds.group(em=True, name=f"floor_{floor+1}_grp")
 
-        # nested loops to create cell lattice
+    def _create_cell_lattice(self):
         for x in range(self.building_width):
             for y in range(self.building_height):
                 for z in range(self.building_length):
@@ -188,91 +203,83 @@ class Window(QtWidgets.QDialog):
                               y*self.cell_height+.5*self.cell_height,
                               z*self.cell_width)
                     # group cell under floor group
-                    cmds.parent(cell_obj_name, f"floor_{y+1}")
+                    cmds.parent(cell_obj_name, f"floor_{y+1}_grp")
                 # group floor under master group
-                cmds.parent(f"floor_{y+1}", "SM_ApartmentBuilding")
+                cmds.parent(f"floor_{y+1}_grp", "master_grp")
 
-        # all floor assets:
-        # - column
-        # - window
-        # - balcony
-        # - awning
-        # top floor assets:
-        # - cornice, cornice_corner
-        # - roof, roof_corner, rooftop
-        # - smokestacks
-        # lower floor assets (when floors >= 2):
-        # - midline, midline_corner
-        # - door
+    def _find_cell_lattice_extremes(self, cell_list):
+        for cell in cell_list:
+            cell_pos = cell.split("_")[1:]
+            cell_x = int(cell_pos[0])
+            cell_z = int(cell_pos[2])
+            self.max_x = max(self.max_x, cell_x)
+            self.min_x = min(self.min_x, cell_x)
+            self.max_z = max(self.max_z, cell_z)
+            self.min_z = min(self.min_z, cell_z)
 
+    def _replace_cell_lattice_with_geo(self, cell_list, floor_num):
+        for cell in cell_list:
+            # init variables
+            cell_pos = cell.split("_")[1:]
+            cell_x = int(cell_pos[0])
+            cell_z = int(cell_pos[2])
+
+            if cell_x == self.max_x:
+                self.build_wall(floor_num, (cell_x, cell_z), "+x")
+            elif cell_x == self.min_x:
+                self.build_wall(floor_num, (cell_x, cell_z), "-x")
+            if cell_z == self.max_z:
+                self.build_wall(floor_num, (cell_x, cell_z), "+z")
+            elif cell_z == self.min_z:
+                self.build_wall(floor_num, (cell_x, cell_z), "-z")
+
+            if floor_num == self.building_height:
+                if cell_x == self.max_x or cell_x == self.min_x:
+                    if cell_z != self.max_z and cell_z != self.min_z:
+                        self.build_roof((cell_x, cell_z),
+                                        (self.min_x, self.max_x), "x")
+                if cell_z == self.max_z or cell_z == self.min_z:
+                    if cell_x != self.max_x and cell_x != self.min_x:
+                        self.build_roof((cell_x, cell_z),
+                                        (self.min_z, self.max_z), "z")
+
+            cmds.delete(cell)
+
+    def _build_corner_geo(self, floor_num):
+        corners = ("+x+z", "+x-z", "-x+z", "-x-z")
+        for corner in corners:
+            if corner[0] == "+":
+                x = self.max_x
+            else:
+                x = self.min_x
+            if corner[2] == "+":
+                z = self.max_z
+            else:
+                z = self.min_z
+            self.build_column(floor_num, (x, z), corner)
+            self.build_band_corner(floor_num, (x, z), corner)
+            if floor_num == self.building_height:
+                self.build_roof_corner((x, z), corner)
+
+    def _build_core_structure(self):
         floor_list = cmds.ls("floor_*")
-        max_x = 1
-        min_x = 1
-        max_z = 1
-        min_z = 1
-
         for floor in floor_list:
+            floor_num = int(floor.split("_")[1])
             cell_list = cmds.ls(f"{floor}|cell_*")
-            print(cell_list)
-            # 1st: find extremes
-            for cell in cell_list:
-                cell_pos = cell.split("_")[1:]
-                cell_x = int(cell_pos[0])
-                cell_z = int(cell_pos[2])
-                max_x = max(max_x, cell_x)
-                min_x = min(min_x, cell_x)
-                max_z = max(max_z, cell_z)
-                min_z = min(min_z, cell_z)
-            # 2nd: replace cells with walls and roof geo
-            for cell in cell_list:
-                # init variables
-                floor_num = int(floor.split("_")[1])
-                cell_pos = cell.split("_")[1:]
-                cell_x = int(cell_pos[0])
-                cell_z = int(cell_pos[2])
+            self._find_cell_lattice_extremes(cell_list)
+            self._replace_cell_lattice_with_geo(cell_list, floor_num)
+            self._build_corner_geo(floor_num)
+            cmds.parent("roof_grp", "master_grp")
+            cmds.xform("master_grp",
+                       scale=(self.master_scale,
+                              self.master_scale,
+                              self.master_scale))
 
-                if cell_x == max_x:
-                    self.build_wall(floor_num, (cell_x, cell_z), "+x")
-                elif cell_x == min_x:
-                    self.build_wall(floor_num, (cell_x, cell_z), "-x")
-                if cell_z == max_z:
-                    self.build_wall(floor_num, (cell_x, cell_z), "+z")
-                elif cell_z == min_z:
-                    self.build_wall(floor_num, (cell_x, cell_z), "-z")
-
-                if floor_num == self.building_height:
-                    if cell_x == max_x or cell_x == min_x:
-                        if cell_z != max_z and cell_z != min_z:
-                            self.build_roof((cell_x, cell_z),
-                                            (min_x, max_x), "x")
-                    if cell_z == max_z or cell_z == min_z:
-                        if cell_x != max_x and cell_x != min_x:
-                            self.build_roof((cell_x, cell_z),
-                                            (min_z, max_z), "z")
-
-                cmds.delete(cell)
-
-            corners = ("+x+z", "+x-z", "-x+z", "-x-z")
-            for corner in corners:
-                if corner[0] == "+":
-                    x = max_x
-                else:
-                    x = min_x
-                if corner[2] == "+":
-                    z = max_z
-                else:
-                    z = min_z
-                self.build_column(floor_num, (x, z), corner)
-                self.build_band_corner(floor_num, (x, z), corner)
-                if floor_num == self.building_height:
-                    self.build_roof_corner((x, z), corner)
-
-        cmds.parent("roof_grp", "SM_ApartmentBuilding")
-
-        cmds.xform("SM_ApartmentBuilding",
-                   scale=(self.master_scale,
-                          self.master_scale,
-                          self.master_scale))
+    def build(self):
+        self.delete_previous_building()
+        self._create_initial_groups()
+        self._create_cell_lattice()
+        self._build_core_structure()
 
     def build_wall(self, floor_num, pos, dir):
 
@@ -307,7 +314,7 @@ class Window(QtWidgets.QDialog):
             cmds.move(0, 0, polarity * .5 * self.cell_width,
                       relative=True)
 
-        cmds.parent(window_obj_name, f"floor_{floor_num}")
+        cmds.parent(window_obj_name, f"floor_{floor_num}_grp")
 
     def build_column(self, floor_num, pos, dir):
         floor_height = (floor_num-1)*self.cell_height+.5*self.cell_height
@@ -327,7 +334,7 @@ class Window(QtWidgets.QDialog):
                   0,
                   polarity_z * .5 * self.cell_width,
                   relative=True)
-        cmds.parent(column_obj_name, f"floor_{floor_num}")
+        cmds.parent(column_obj_name, f"floor_{floor_num}_grp")
 
     def build_band_corner(self, floor_num, pos, dir):
         if floor_num == self.building_height:
@@ -356,7 +363,7 @@ class Window(QtWidgets.QDialog):
                 0,
                 polarity_z * (.5 * self.cell_width + .5 * overhang),
                 relative=True)
-        cmds.parent(band_corner_obj_name, f"floor_{floor_num}")
+        cmds.parent(band_corner_obj_name, f"floor_{floor_num}_grp")
 
     def build_band(self, floor_num, pos, dir):
         degrees_per_direction = {"+x": 90, "-x": -90, "+z": 0, "-z": 180}
@@ -391,7 +398,7 @@ class Window(QtWidgets.QDialog):
             cmds.move(0, 0, polarity*(.5*self.cell_width+.5*overhang),
                       relative=True)
 
-        cmds.parent(band_obj_name, f"floor_{floor_num}")
+        cmds.parent(band_obj_name, f"floor_{floor_num}_grp")
 
     def build_balcony(self, floor_num, pos, dir):
         pass
