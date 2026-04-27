@@ -25,13 +25,13 @@ class Window(QtWidgets.QDialog):
     def _mk_main_layout(self):
         self.main_layout = QtWidgets.QVBoxLayout()
         # Make parameter UI
-        self.make_dimensions_options_ui()  # length, width, height
-        self.make_details_options_ui()  # balconies, awnings, etc.
-        self.make_buttons_ui()  # Build and Cancel buttons
+        self._make_dimensions_options_ui()  # length, width, height
+        self._make_details_options_ui()  # balconies, awnings, etc.
+        self._make_buttons_ui()  # Build and Cancel buttons
         self.setLayout(self.main_layout)
         self._connect_signals()
 
-    def make_dimensions_options_ui(self):
+    def _make_dimensions_options_ui(self):
         self.dimensions_options_header_layout = QtWidgets.QHBoxLayout()
         self.dimensions_lbl = QtWidgets.QLabel("Dimensions")
         self.dimensions_options_header_layout.addWidget(self.dimensions_lbl)
@@ -73,7 +73,7 @@ class Window(QtWidgets.QDialog):
         self.main_layout.addLayout(self.length_option_layout)
         self.main_layout.addLayout(self.height_option_layout)
 
-    def make_details_options_ui(self):
+    def _make_details_options_ui(self):
         # header
         self.details_options_header_layout = QtWidgets.QHBoxLayout()
         self.details_lbl = QtWidgets.QLabel("Details")
@@ -131,7 +131,7 @@ class Window(QtWidgets.QDialog):
         self.sidewalk_layout.addWidget(self.sidewalk_checkbox)
         self.main_layout.addLayout(self.sidewalk_layout)
 
-    def make_buttons_ui(self):
+    def _make_buttons_ui(self):
         self.build_btn = QtWidgets.QPushButton("Build")
         self.cancel_btn = QtWidgets.QPushButton("Cancel")
         self.main_layout.addWidget(self.build_btn)
@@ -223,11 +223,7 @@ class Window(QtWidgets.QDialog):
                 min_x = min(min_x, cell_x)
                 max_z = max(max_z, cell_z)
                 min_z = min(min_z, cell_z)
-            print(f"highest_cell_x={max_x},"
-                  f"lowest_cell_x={min_x},"
-                  f"highest_cell_z={max_z},"
-                  f"lowest_cell_z={min_z}")
-            # 2nd: check eligiblity
+            # 2nd: replace cells with walls and roof geo
             for cell in cell_list:
                 # init variables
                 floor_num = int(floor.split("_")[1])
